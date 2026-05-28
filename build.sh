@@ -3,24 +3,59 @@
 set -euo pipefail
 
 # Configuration
-DXVK_REPO="https://gitlab.com/Ph42oN/dxvk-gplasync.git"
+PATCH_REPO="https://gitlab.com/Ph42oN/dxvk-gplasync.git"
 DXVK_VERSION="${DXVK_VERSION:-main}" # Defaults to main branch if not specified
 SRC_DIR="dxvk-src"
+PATCH_DIR="patches-repo"
 OUT_DIR="out"
 ROOT_DIR="$(pwd)"
 
 echo "=== DXVK-gplasync Build Automation for Winlator Bionic ==="
-echo "Target DXVK Version/Branch: ${DXVK_VERSION}"
+echo "Target DXVK Version Input: ${DXVK_VERSION}"
 
 # Clean previous build directories
 echo "Cleaning output directories..."
 rm -rf "${OUT_DIR}"
 rm -rf "${SRC_DIR}"
+rm -rf "${PATCH_DIR}"
 
-# Clone source repository
-echo "Cloning DXVK-gplasync repository..."
-git clone --recursive --depth 1 --branch "${DXVK_VERSION}" "${DXVK_REPO}" "${SRC_DIR}"
+# 1. Clone patch repository
+echo "Cloning dxvk-gplasync patch repository..."
+git clone --depth 1 "${PATCH_REPO}" "${PATCH_DIR}"
 
+# 2. Determine target version and patches to apply
+if [ "${DXVK_VERSION}" = "main" ]; then
+    echo "Autodetecting latest patch version..."
+    LATEST_PATCH_FILE=$(ls -1 "${PATCH_DIR}/patches"/dxvk-gplasync-*.patch | sort -V | tail -n 1)
+    PATCH_NAME=$(basename "${LATEST_PATCH_FILE}")
+    VERSION_TAG=${PATCH_NAME#dxvk-gplasync-}
+    VERSION_TAG=${VERSION_TAG%.patch}
+    echo "Autodetected latest version tag: ${VERSION_TAG}"
+else
+    # Parse user-specified version
+    VERSION_TAG="${DXVK_VERSION#v}" # remove leading 'v' if present
+fi
+
+DXVK_TAG="v${VERSION_TAG%-*}"
+echo "Target official DXVK tag: ${DXVK_TAG}"
+echo "Target patch: dxvk-gplasync-${VERSION_TAG}.patch"
+
+# 3. Clone official DXVK source code repository
+echo "Cloning official DXVK repository..."
+git clone --branch "${DXVK_TAG}" --recursive --depth 1 https://github.com/doitsujin/dxvk.git "${SRC_DIR}"
+
+# 4. Apply GPLAsync patches
+echo "Applying patches..."
+cd "${SRC_DIR}"
+patch -p1 < "../${PATCH_DIR}/patches/dxvk-gplasync-${VERSION_TAG}.patch"
+
+# Check if global-dxvk.conf patch exists and apply it
+if [ -f "../${PATCH_DIR}/patches/global-dxvk.conf.patch" ]; then
+    patch -p1 < "../${PATCH_DIR}/patches/global-dxvk.conf.patch"
+fi
+cd "${ROOT_DIR}"
+
+# 5. Compile targets
 # Helper function to build a specific target
 compile_target() {
     local target_name=$1
@@ -47,18 +82,16 @@ compile_target() {
     cp "${SRC_DIR}/${build_dir}/src/dxgi/dxgi.dll" "${dest_dir}/"
 }
 
-# 1. Compile standard 32-bit (x86) target
+# Compile standard 32-bit (x86) target
 compile_target "x86" "cross-x86.ini"
 
-# 2. Compile standard 64-bit (x64) target
+# Compile standard 64-bit (x64) target
 compile_target "x64" "cross-x64.ini"
 
-# 3. Compile ARM64EC (Emulation Compatible) target
+# Compile ARM64EC (Emulation Compatible) target
 compile_target "arm64ec" "cross-arm64ec.ini"
 
 # Packaging
-echo "=== Packaging Winlator Component Packages (.wcp) ==="
-
 # Helper function to create WCP package
 create_wcp() {
     local package_name=$1
@@ -70,8 +103,12 @@ create_wcp() {
     echo "Packaging ${package_name}..."
     mkdir -p "${wcp_dir}"
     
-    # Copy profile.json
-    cp "${profile_file}" "${wcp_dir}/profile.json"
+    # Copy profile.json and dynamically update version metadata using jq
+    local display_ver="v${VERSION_TAG}"
+    if [ "${package_name}" = "arm64ec" ]; then
+        display_ver="${display_ver}-arm64ec"
+    fi
+    jq --arg ver "${display_ver}" '.version = $ver' "${profile_file}" > "${wcp_dir}/profile.json"
     
     # Copy DLLs
     mkdir -p "${wcp_dir}/system32"
