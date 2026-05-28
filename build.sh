@@ -26,7 +26,7 @@ git clone --depth 1 "${PATCH_REPO}" "${PATCH_DIR}"
 # 2. Determine target version and patches to apply
 if [ "${DXVK_VERSION}" = "main" ] || [ "${DXVK_VERSION}" = "master" ]; then
     echo "Autodetecting latest patch version..."
-    LATEST_PATCH_FILE=$(ls -1 "${PATCH_DIR}/patches"/dxvk-gplasync-*.patch | sort -V | tail -n 1)
+    LATEST_PATCH_FILE=$(ls -1 "${PATCH_DIR}/patches"/dxvk-gplasync-[0-9]*.patch | sort -V | tail -n 1)
     PATCH_NAME=$(basename "${LATEST_PATCH_FILE}")
     VERSION_TAG=${PATCH_NAME#dxvk-gplasync-}
     VERSION_TAG=${VERSION_TAG%.patch}
