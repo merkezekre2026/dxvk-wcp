@@ -36,7 +36,8 @@ compile_target() {
         --cross-file "${ROOT_DIR}/${cross_file}" \
         --buildtype release \
         --strip \
-        "${build_dir}"
+        "${build_dir}" \
+        .
     
     # Build DLLs
     ninja -C "${build_dir}"
