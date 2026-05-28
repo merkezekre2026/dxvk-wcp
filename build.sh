@@ -25,7 +25,7 @@ git clone --recursive --depth 1 --branch "${DXVK_VERSION}" "${DXVK_REPO}" "${SRC
 compile_target() {
     local target_name=$1
     local cross_file=$2
-    local build_dir="${SRC_DIR}/build.${target_name}"
+    local build_dir="build.${target_name}"
     local dest_dir="${OUT_DIR}/dlls/${target_name}"
 
     echo "--- Building ${target_name} ---"
