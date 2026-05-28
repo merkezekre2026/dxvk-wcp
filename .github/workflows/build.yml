@@ -31,16 +31,12 @@ jobs:
 
       - name: Download & Setup llvm-mingw
         run: |
-          # Fetch the latest release tag of llvm-mingw using HTML redirects (avoids API rate limits)
-          TAG_URL=$(curl -Ls -o /dev/null -w %{url_effective} https://github.com/mstorsjo/llvm-mingw/releases/latest)
-          TAG=${TAG_URL##*/}
-          echo "Latest llvm-mingw version tag: $TAG"
+          # Pin to stable llvm-mingw version 20240619 to avoid libc++ compatibility issues in bleeding edge LLVM releases
+          TAG="20240619"
+          echo "Using pinned llvm-mingw version: $TAG"
           
-          # Construct download URL (try Ubuntu 22.04 first, fallback to 20.04)
-          DOWNLOAD_URL="https://github.com/mstorsjo/llvm-mingw/releases/download/$TAG/llvm-mingw-$TAG-ucrt-ubuntu-22.04-x86_64.tar.xz"
-          if ! curl -sfI "$DOWNLOAD_URL" >/dev/null; then
-            DOWNLOAD_URL="https://github.com/mstorsjo/llvm-mingw/releases/download/$TAG/llvm-mingw-$TAG-ucrt-ubuntu-20.04-x86_64.tar.xz"
-          fi
+          # Construct download URL (stable Ubuntu 20.04 build which runs fine on newer systems)
+          DOWNLOAD_URL="https://github.com/mstorsjo/llvm-mingw/releases/download/$TAG/llvm-mingw-$TAG-ucrt-ubuntu-20.04-x86_64.tar.xz"
           
           echo "Downloading toolchain from: $DOWNLOAD_URL"
           curl -Lo llvm-mingw.tar.xz "$DOWNLOAD_URL"
