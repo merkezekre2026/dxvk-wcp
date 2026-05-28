@@ -4,7 +4,7 @@ set -euo pipefail
 
 # Configuration
 DXVK_REPO="https://gitlab.com/Ph42oN/dxvk-gplasync.git"
-DXVK_VERSION="${DXVK_VERSION:-master}" # Defaults to master branch if not specified
+DXVK_VERSION="${DXVK_VERSION:-main}" # Defaults to main branch if not specified
 SRC_DIR="dxvk-src"
 OUT_DIR="out"
 ROOT_DIR="$(pwd)"

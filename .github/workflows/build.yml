@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       dxvk_version:
-        description: 'DXVK-gplasync version tag or branch (e.g., v2.7.1-1, v2.7-1, master)'
+        description: 'DXVK-gplasync version tag or branch (e.g., v2.7.1-1, v2.7-1, main)'
         required: true
-        default: 'master'
+        default: 'main'
   push:
     branches:
       - main
@@ -57,7 +57,7 @@ jobs:
 
       - name: Run Build Script
         env:
-          DXVK_VERSION: ${{ github.event.inputs.dxvk_version || 'master' }}
+          DXVK_VERSION: ${{ github.event.inputs.dxvk_version || 'main' }}
         run: |
           ./build.sh
 
@@ -76,8 +76,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.dxvk_version || 'master' }}-${{ github.run_number }}
-          name: DXVK GPLAsync (${{ github.event.inputs.dxvk_version || 'master' }}) Build
+          tag_name: ${{ github.event.inputs.dxvk_version || 'main' }}-${{ github.run_number }}
+          name: DXVK GPLAsync (${{ github.event.inputs.dxvk_version || 'main' }}) Build
           draft: false
           prerelease: false
           files: |
