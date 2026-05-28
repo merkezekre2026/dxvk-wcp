@@ -1,0 +1,89 @@
+name: DXVK GPLAsync Build Automation
+
+on:
+  workflow_dispatch:
+    inputs:
+      dxvk_version:
+        description: 'DXVK-gplasync version tag or branch (e.g., v2.7.1-1, v2.7-1, master)'
+        required: true
+        default: 'master'
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Package DXVK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build python3 glslang-tools zstd jq curl
+
+      - name: Download & Setup llvm-mingw
+        run: |
+          # Fetch the latest release info of llvm-mingw
+          TAG=$(curl -s https://api.github.com/repos/mstorsjo/llvm-mingw/releases/latest | jq -r .tag_name)
+          echo "Latest llvm-mingw version tag: $TAG"
+          
+          # Try to find a package built for Ubuntu 22.04 or fallback to 20.04
+          DOWNLOAD_URL=$(curl -s "https://api.github.com/repos/mstorsjo/llvm-mingw/releases/tags/$TAG" \
+            | jq -r '.assets[] | select(.name | contains("ubuntu-22.04") and contains("x86_64") and endswith(".tar.xz")) | .browser_download_url')
+          
+          if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" = "null" ]; then
+            DOWNLOAD_URL=$(curl -s "https://api.github.com/repos/mstorsjo/llvm-mingw/releases/tags/$TAG" \
+              | jq -r '.assets[] | select(.name | contains("ubuntu-20.04") and contains("x86_64") and endswith(".tar.xz")) | .browser_download_url')
+          fi
+          
+          echo "Downloading toolchain from: $DOWNLOAD_URL"
+          curl -Lo llvm-mingw.tar.xz "$DOWNLOAD_URL"
+          
+          echo "Extracting toolchain..."
+          tar -xf llvm-mingw.tar.xz
+          
+          # Find the name of the extracted directory
+          EXTRACTED_DIR=$(find . -maxdepth 1 -type d -name "llvm-mingw-*" | head -n 1)
+          echo "Extracted directory: $EXTRACTED_DIR"
+          
+          # Add the binary path to the runner environment
+          echo "$(pwd)/$EXTRACTED_DIR/bin" >> $GITHUB_PATH
+
+      - name: Run Build Script
+        env:
+          DXVK_VERSION: ${{ github.event.inputs.dxvk_version || 'master' }}
+        run: |
+          ./build.sh
+
+      - name: Upload standard .wcp package
+        uses: actions/upload-artifact@v4
+        with:
+          name: dxvk-gplasync-standard
+          path: out/dxvk-gplasync-standard.wcp
+
+      - name: Upload arm64ec .wcp package
+        uses: actions/upload-artifact@v4
+        with:
+          name: dxvk-gplasync-arm64ec
+          path: out/dxvk-gplasync-arm64ec.wcp
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.dxvk_version || 'master' }}-${{ github.run_number }}
+          name: DXVK GPLAsync (${{ github.event.inputs.dxvk_version || 'master' }}) Build
+          draft: false
+          prerelease: false
+          files: |
+            out/dxvk-gplasync-standard.wcp
+            out/dxvk-gplasync-arm64ec.wcp
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

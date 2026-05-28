@@ -1,0 +1,6 @@
+{
+  "name": "DXVK GPLAsync (Standard)",
+  "version": "v2.7-1",
+  "type": "DXVK",
+  "description": "DXVK with GPLAsync patches for standard Winlator configurations (x86/x64 DLLs)"
+}

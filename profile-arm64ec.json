@@ -1,0 +1,6 @@
+{
+  "name": "DXVK GPLAsync (ARM64EC)",
+  "version": "v2.7-1-arm64ec",
+  "type": "DXVK",
+  "description": "DXVK with GPLAsync patches built for ARM64EC for Winlator Bionic/FEXCore"
+}
