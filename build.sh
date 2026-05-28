@@ -32,12 +32,7 @@ compile_target() {
     cd "${SRC_DIR}"
     
     # Run meson setup
-    meson setup \
-        --cross-file "${ROOT_DIR}/${cross_file}" \
-        --buildtype release \
-        --strip \
-        "${build_dir}" \
-        .
+    meson setup "${build_dir}" --cross-file "${ROOT_DIR}/${cross_file}" --buildtype release --strip
     
     # Build DLLs
     ninja -C "${build_dir}"
